@@ -1,0 +1,17 @@
+device=cuda
+model=TM-1bit-core ffn=tensormatics binary_ffn=True binary_attn=True
+params=3,895,890 binary_layers=42
+  total_params=3,895,890 binary_params=3,804,192
+starting 10000 steps (eval every 1000)
+step  1000 | tr_loss 2.4632 | val_loss 2.4403 | val_ppl 11.48 | val_acc 0.278 avg_flip=5.51% avg_pos=50.0%
+step  2000 | tr_loss 2.4328 | val_loss 2.4146 | val_ppl 11.19 | val_acc 0.284 avg_flip=4.41% avg_pos=50.0%
+step  3000 | tr_loss 2.3484 | val_loss 2.3534 | val_ppl 10.52 | val_acc 0.304 avg_flip=4.74% avg_pos=50.0%
+step  4000 | tr_loss 2.1472 | val_loss 2.1735 | val_ppl 8.79 | val_acc 0.358 avg_flip=5.24% avg_pos=50.0%
+step  5000 | tr_loss 1.9102 | val_loss 1.9114 | val_ppl 6.76 | val_acc 0.422 avg_flip=5.93% avg_pos=50.0%
+step  6000 | tr_loss 1.8376 | val_loss 1.8367 | val_ppl 6.28 | val_acc 0.439 avg_flip=5.69% avg_pos=50.0%
+step  7000 | tr_loss 1.8026 | val_loss 1.7914 | val_ppl 6.00 | val_acc 0.451 avg_flip=5.11% avg_pos=50.0%
+step  8000 | tr_loss 1.7256 | val_loss 1.7520 | val_ppl 5.77 | val_acc 0.461 avg_flip=4.49% avg_pos=50.0%
+step  9000 | tr_loss 1.6412 | val_loss 1.6990 | val_ppl 5.47 | val_acc 0.477 avg_flip=4.34% avg_pos=50.0%
+step 10000 | tr_loss 1.6060 | val_loss 1.6157 | val_ppl 5.03 | val_acc 0.499 avg_flip=4.53% avg_pos=49.9%
+done. best_val_loss=1.6157 log=out\TM-1bit-core_F2-10k_log.jsonl
+JSONL log: out\TM-1bit-core_F2-10k_log.jsonl

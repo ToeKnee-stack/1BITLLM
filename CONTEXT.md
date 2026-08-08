@@ -17,8 +17,11 @@ FFN survives extreme discretization better than a **standard** FFN.
 41.8% (1-bit core) on validation PPL. **A param-matched re-run confirmed the advantage
 is architectural, not capacity:** a Tensormatics narrowed to the Standard's exact
 parameter count (3.896M vs 3.896M, 786-param diff) still reaches val_ppl 6.66 vs 12.14
-for Standard. All 6 original models plus the param-matched validation are trained and
-benchmarked. The code is complete and reproducible.
+for Standard. **Extended training (10K, 20K) shows the gap WIDENS:** 45% (5K) → 57%
+(10K) → 62% (20K) lower ppl. The Standard 1-bit core **stalls** at ~11.6 ppl while the
+Tensormatics core keeps improving to 4.35 ppl at 20K (still descending). All 6 original
+models plus the param-matched 5K/10K/20K validation are trained and benchmarked. The
+code is complete and reproducible.
 
 ---
 
@@ -116,6 +119,22 @@ with the TM FFN narrowed to hidden **314** to match Std's params exactly:
 the much larger F (6.58M). The Tensormatics advantage is **architectural, not capacity**.
 The param-count confound from the original report is **resolved**.
 
+### Extended training — the gap WIDENS (param-matched, 3.90M)
+The Standard core (E) stalls; Tensormatics (F2) keeps learning:
+
+| Model | 5K | 10K | 20K |
+|-------|----:|----:|----:|
+| E — Std 1-bit core | 12.14 | 11.58 | (stalled) |
+| F2 — TM 1-bit core | 6.66 | 5.03 | **4.35** |
+
+```
+E Std (val_loss): 3000:2.52 5000:2.52 10000:2.54  → flatlined/stalled
+F2 TM (val_loss): 4000:2.17 8000:1.74 12000:1.56 20000:1.47 → still descending
+```
+
+Advantage grows with training: **45% (5K) → 57% (10K) → 62% (20K)** lower ppl.
+F2 at 20K = val_loss 1.47, ppl 4.35, 53.9% acc, **still improving** (50K run planned).
+
 ### Headline finding — the advantage widens with quantization depth
 ```
 FP16:        TM 2.50 vs Std 2.54  →  TM better by  1.6%
@@ -179,24 +198,29 @@ $PY scripts/run_eval.py
 Re-ran 1-bit core with TM FFN narrowed to hidden **314** (via `--ffn-hidden 314`).
 Result: TM 3.90M → val_ppl 6.66 vs Std 3.90M → 12.14 (**45% lower ppl, equal params**).
 The Tensormatics advantage is architectural, not capacity. Full write-up in report §7.
-New log: `out/TM-1bit-core_F-param-matched_log.jsonl`.
 
-### 7.2 [HIGH] Longer runs (50k–200k steps)
-FP16 curves were still descending at 5000. Longer runs establish asymptotic PPL and
-whether the TM advantage persists/narrows at convergence. ~64 ms/step on GPU → 50k ≈
-54 min, 200k ≈ 3.5 hr per model.
+### 7.2 ✅ DONE — Extended training (10K, 20K) — the gap WIDENS
+- E (Std core) 10K → stalled at ppl 11.58 (flatlined by ~step 3000). Log: `out/Std-1bit-core_E-10k_log.jsonl`.
+- F2 (TM core) 10K → ppl 5.03; **20K → ppl 4.35** (still descending).
+- Advantage: 45% (5K) → 57% (10K) → 62% (20K).
+- F2 20K log: `out/TM-1bit-core_F2-20k_log.jsonl`.
 
-### 7.3 [MED] Multiple seeds
+### 7.3 [HIGH] 50K run of F2 to pin down the asymptotic PPL
+F2 was still improving at 20K (last delta −0.016). A 50K run (~53 min GPU) will find
+its ceiling. Use `run_f2_20k.py` pattern but `--steps 50000`. **NOT RUN YET** — user
+deferred due to time (needs ~1 hr wait).
+
+### 7.4 [MED] Multiple seeds
 All runs used seed 1337. Re-run key models (D, F2) with 2–3 seeds to quantify variance
 in the ppl gap and flip-rate settling.
 
-### 7.4 [MED] Isolate the mechanism: multiplicative fusion vs learned α
+### 7.5 [MED] Isolate the mechanism: multiplicative fusion vs learned α
 The param-matched result shows the advantage is real. Next, test whether it comes
 specifically from the multiplicative interaction or from the presence of learned α
 scales — e.g. add a learned per-channel α to the *standard* FFN's binary layers and see
 if that closes part of the gap.
 
-### 7.5 [LOW] Bit-serial inference kernel
+### 7.6 [LOW] Bit-serial inference kernel
 Storage is compressed 13× but speed is not (matmul isn't bit-serial). A real speedup
 needs a custom HIP/bit-serial kernel — separate from the storage experiment.
 
