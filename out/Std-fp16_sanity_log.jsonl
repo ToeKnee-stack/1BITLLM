@@ -1,0 +1,1 @@
+{"step": 50, "train_loss": 2.9461, "val_loss": 2.9576, "train_ppl": 19.03, "val_ppl": 19.25, "val_acc": 0.2522, "lr": 7.7e-05, "elapsed_s": 49.1}

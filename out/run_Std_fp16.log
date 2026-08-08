@@ -1,0 +1,17 @@
+device=cuda
+model=Std-fp16 ffn=standard binary_ffn=False binary_attn=False
+params=3,884,580 binary_layers=0
+  total_params=3,884,580 binary_params=0
+starting 5000 steps (eval every 500)
+step   500 | tr_loss 1.8259 | val_loss 1.8317 | val_ppl 6.24 | val_acc 0.456
+step  1000 | tr_loss 1.5544 | val_loss 1.5018 | val_ppl 4.49 | val_acc 0.540
+step  1500 | tr_loss 1.3832 | val_loss 1.3750 | val_ppl 3.96 | val_acc 0.573
+step  2000 | tr_loss 1.2768 | val_loss 1.3014 | val_ppl 3.67 | val_acc 0.592
+step  2500 | tr_loss 1.2222 | val_loss 1.2274 | val_ppl 3.41 | val_acc 0.612
+step  3000 | tr_loss 1.1992 | val_loss 1.1659 | val_ppl 3.21 | val_acc 0.630
+step  3500 | tr_loss 1.0984 | val_loss 1.1139 | val_ppl 3.05 | val_acc 0.646
+step  4000 | tr_loss 1.0732 | val_loss 1.0478 | val_ppl 2.85 | val_acc 0.666
+step  4500 | tr_loss 0.9786 | val_loss 0.9920 | val_ppl 2.70 | val_acc 0.684
+step  5000 | tr_loss 0.9262 | val_loss 0.9319 | val_ppl 2.54 | val_acc 0.702
+done. best_val_loss=0.9319 log=out\Std-fp16_log.jsonl
+JSONL log: out\Std-fp16_log.jsonl

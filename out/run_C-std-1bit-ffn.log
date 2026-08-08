@@ -1,0 +1,17 @@
+device=cuda
+model=Std-1bit-ffn ffn=standard binary_ffn=True binary_attn=False
+params=3,890,628 binary_layers=12
+  total_params=3,890,628 binary_params=2,286,144
+starting 5000 steps (eval every 500)
+step   500 | tr_loss 2.1648 | val_loss 2.1506 | val_ppl 8.59 | val_acc 0.366 avg_flip=3.96% avg_pos=50.0%
+step  1000 | tr_loss 1.6579 | val_loss 1.6868 | val_ppl 5.40 | val_acc 0.493 avg_flip=3.95% avg_pos=50.0%
+step  1500 | tr_loss 1.5934 | val_loss 1.5869 | val_ppl 4.89 | val_acc 0.518 avg_flip=3.20% avg_pos=50.0%
+step  2000 | tr_loss 1.5167 | val_loss 1.5370 | val_ppl 4.65 | val_acc 0.530 avg_flip=3.10% avg_pos=50.0%
+step  2500 | tr_loss 1.5163 | val_loss 1.5023 | val_ppl 4.49 | val_acc 0.541 avg_flip=3.16% avg_pos=50.0%
+step  3000 | tr_loss 1.4557 | val_loss 1.4821 | val_ppl 4.40 | val_acc 0.544 avg_flip=3.28% avg_pos=50.0%
+step  3500 | tr_loss 1.4665 | val_loss 1.4527 | val_ppl 4.27 | val_acc 0.552 avg_flip=3.36% avg_pos=50.0%
+step  4000 | tr_loss 1.4786 | val_loss 1.4455 | val_ppl 4.24 | val_acc 0.553 avg_flip=3.48% avg_pos=50.0%
+step  4500 | tr_loss 1.4689 | val_loss 1.4323 | val_ppl 4.19 | val_acc 0.555 avg_flip=3.61% avg_pos=50.0%
+step  5000 | tr_loss 1.4278 | val_loss 1.3983 | val_ppl 4.05 | val_acc 0.565 avg_flip=3.69% avg_pos=50.0%
+done. best_val_loss=1.3983 log=out\Std-1bit-ffn_C-std-1bit-ffn_log.jsonl
+JSONL log: out\Std-1bit-ffn_C-std-1bit-ffn_log.jsonl

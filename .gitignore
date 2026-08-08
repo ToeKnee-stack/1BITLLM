@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+checkpoints/
+
+# Large checkpoint artifacts (per-step .pt files) — regenerate by training.
+out/*/

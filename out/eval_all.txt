@@ -1,0 +1,192 @@
+
+======================================================================
+### A-std-fp16 ###
+======================================================================
+loaded out/Std-fp16/best.pt (step 5000, val_loss 0.9319, val_ppl 2.54)
+arch: Std-fp16 ffn=standard
+
+=== Storage benchmark ===
+total_params      : 3,884,580
+  binary params   : 0
+  non-binary params: 3,884,580
+fp16 storage      : 7.77 MB (7,769,160 B)
+1-bit packed      : 7.769 MB (7,769,160 B)
+compression ratio : 1.0x
+effective precision: 0.0% of weights are 1-bit
+
+=== Inference benchmark (batch=1, ctx=128, gen=256) ===
+generated 256 tokens in 1.42s
+tokens/sec      : 180.5
+ms/token        : 5.5
+peak GPU mem    : 0.15 GB
+
+=== Sample ('ROMEO:\n') ===
+ROMEO:
+Thou art not that madmen return'd
+What thou by this haughty thank--gentle proclarge,
+'Twe time is patient and clap the head of great death,
+Give signal a most, and a particular
+Of bear a thousan fair denial,
+Being a back, and do intock itself not up,
+
+
+======================================================================
+### B-tm-fp16 ###
+======================================================================
+loaded out/TM-fp16/best.pt (step 5000, val_loss 0.9158, val_ppl 2.50)
+arch: TM-fp16 ffn=tensormatics
+
+=== Storage benchmark ===
+total_params      : 6,562,338
+  binary params   : 6
+  non-binary params: 6,562,332
+fp16 storage      : 13.12 MB (13,124,676 B)
+1-bit packed      : 13.125 MB (13,124,665 B)
+compression ratio : 1.0x
+effective precision: 0.0% of weights are 1-bit
+
+=== Inference benchmark (batch=1, ctx=128, gen=256) ===
+generated 256 tokens in 2.37s
+tokens/sec      : 107.8
+ms/token        : 9.3
+peak GPU mem    : 0.17 GB
+
+=== Sample ('ROMEO:\n') ===
+ROMEO:
+A could hunt! while you with a woman's tongue
+On thee forfeit and all things franklings, you means:
+If you will marvellous me to all my heart, being
+In wanted with this faithful flood. But, surely present
+That touch the time of no hours, if thou kill
+
+
+======================================================================
+### C-std-1bit-ffn ###
+======================================================================
+loaded out/Std-1bit-ffn_C-std-1bit-ffn/best.pt (step 5000, val_loss 1.3983, val_ppl 4.05)
+arch: Std-1bit-ffn ffn=standard
+
+=== Storage benchmark ===
+total_params      : 3,890,628
+  binary params   : 2,292,192
+  non-binary params: 1,598,436
+fp16 storage      : 7.78 MB (7,781,256 B)
+1-bit packed      : 3.483 MB (3,483,396 B)
+compression ratio : 2.2x
+effective precision: 58.9% of weights are 1-bit
+
+=== Inference benchmark (batch=1, ctx=128, gen=256) ===
+generated 256 tokens in 1.79s
+tokens/sec      : 142.8
+ms/token        : 7.0
+peak GPU mem    : 0.15 GB
+
+=== Sample ('ROMEO:\n') ===
+ROMEO:
+Agaples possession, distrained,
+Which want not comfortane; she will to prat.
+These thee to the common prison, might, more is the
+noble much against of that: neither heart,
+I am pore bed, and mastersly a here.
+
+CAPULET:
+He Can me that acconding but be
+
+
+======================================================================
+### D-tm-1bit-ffn ###
+======================================================================
+loaded out/TM-1bit-ffn_D-tm-1bit-ffn/best.pt (step 5000, val_loss 1.3340, val_ppl 3.80)
+arch: TM-1bit-ffn ffn=tensormatics
+
+=== Storage benchmark ===
+total_params      : 6,578,970
+  binary params   : 4,969,950
+  non-binary params: 1,609,020
+fp16 storage      : 13.16 MB (13,157,940 B)
+1-bit packed      : 3.839 MB (3,839,284 B)
+compression ratio : 3.4x
+effective precision: 75.5% of weights are 1-bit
+
+=== Inference benchmark (batch=1, ctx=128, gen=256) ===
+generated 256 tokens in 3.36s
+tokens/sec      : 76.3
+ms/token        : 13.1
+peak GPU mem    : 0.17 GB
+
+=== Sample ('ROMEO:\n') ===
+ROMEO:
+I shallong; an he thou seest! speak than to my brother than blow:
+Not ass, but couldst not be most to me,
+For the duke of other seen are redems help himself.
+
+DUKE VINCENTIO:
+A boot.
+
+ROMEO:
+If not the adughter
+That I carry 'Halppy day, fair a purenc
+
+
+======================================================================
+### E-std-1bit-core ###
+======================================================================
+loaded out/Std-1bit-core_E-std-1bit-core/best.pt (step 5000, val_loss 2.4962, val_ppl 12.14)
+arch: Std-1bit-core ffn=standard
+
+=== Storage benchmark ===
+total_params      : 3,896,676
+  binary params   : 3,822,336
+  non-binary params: 74,340
+fp16 storage      : 7.79 MB (7,793,352 B)
+1-bit packed      : 0.626 MB (626,472 B)
+compression ratio : 12.4x
+effective precision: 98.1% of weights are 1-bit
+
+=== Inference benchmark (batch=1, ctx=128, gen=256) ===
+generated 256 tokens in 2.12s
+tokens/sec      : 120.8
+ms/token        : 8.3
+peak GPU mem    : 0.15 GB
+
+=== Sample ('ROMEO:\n') ===
+ROMEO:
+IOIt I tOied tou akeresatour tex
+Sicorr w hethouve ton y blemit;
+Thero lde ndiro wis oure, fod borend hokind horenoprererourod t g bcos m he we wicakthirse graner
+Asomas hime o t himo a
+Ir t o d ingord braf hat t ticong this t divend?
+ACETENENLANG
+PL
+
+
+======================================================================
+### F-tm-1bit-core ###
+======================================================================
+loaded out/TM-1bit-core_F-tm-1bit-core/best.pt (step 5000, val_loss 1.9551, val_ppl 7.06)
+arch: TM-1bit-core ffn=tensormatics
+
+=== Storage benchmark ===
+total_params      : 6,585,018
+  binary params   : 6,500,094
+  non-binary params: 84,924
+fp16 storage      : 13.17 MB (13,170,036 B)
+1-bit packed      : 0.982 MB (982,360 B)
+compression ratio : 13.4x
+effective precision: 98.7% of weights are 1-bit
+
+=== Inference benchmark (batch=1, ctx=128, gen=256) ===
+generated 256 tokens in 3.70s
+tokens/sec      : 69.2
+ms/token        : 14.5
+peak GPU mem    : 0.17 GB
+
+=== Sample ('ROMEO:\n') ===
+ROMEO:
+F aret you lok?
+
+
+s thee lost at fulst in thenouts: tis thand thath,
+BENCENTIO:
+You ro 'lem the a you t warentl not sing the arceaurarced lat cleined the in cour lorthee akear dirs wath unad sir,ear't thatcine benone inv dupte ol athe arther the the 
+
