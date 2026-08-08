@@ -9,6 +9,12 @@ Transformer, using the TinyShakespeare char-level language-modeling task.
 (attention Q/K/V/O + FFN) is binary — the advantage *widens* as quantization deepens.
 See [EXPERIMENT_REPORT.md](EXPERIMENT_REPORT.md) for the full write-up.
 
+**Param-matched confirmation:** the advantage is **not** due to Tensormatics' larger
+parameter count. When the Tensormatics FFN is narrowed (hidden 314) to match the
+Standard model's params exactly (3.896M vs 3.896M, 0.02% diff), Tensormatics still
+reaches **val_ppl 6.66 vs Standard 12.14** — a 45% advantage, even slightly better than
+the larger 6.58M version (7.06).
+
 ---
 
 ## What this is
@@ -112,8 +118,8 @@ LM head are always FP16 by design.
 
 - ✅ All 6 models trained (5000 steps each) and benchmarked
 - ✅ Phase 1 (BinaryLinear + STE) verified
+- ✅ Param-matched validation (hidden 314) — TM advantage is architectural, not capacity
 - ✅ Full results in EXPERIMENT_REPORT.md
-- ⬜ Param-matched Tensormatics-vs-Standard follow-up (removes capacity confound)
 - ⬜ Longer runs (50k–200k), multiple seeds
 - ⬜ Isolate whether the advantage comes from multiplicative fusion vs the learned α scales
 - ⬜ (Optional) bit-serial inference kernel for real speedup

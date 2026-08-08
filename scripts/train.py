@@ -34,6 +34,8 @@ from onebitllm.training import (
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--ffn", choices=["standard", "tensormatics"], default="standard")
+    p.add_argument("--ffn-hidden", type=int, default=None,
+                   help="Override FFN hidden width (default: 756). For param-matched TM runs.")
     p.add_argument("--binary-ffn", action="store_true")
     p.add_argument("--binary-attn", action="store_true")
     p.add_argument("--data", default="data/tiny_shakespeare.txt")
@@ -92,6 +94,7 @@ def main():
         vocab_size=ds.vocab_size,
         block_size=args.block,
         ffn_type=args.ffn,
+        ffn_hidden=args.ffn_hidden if args.ffn_hidden else 756,
         binary_ffn=args.binary_ffn,
         binary_attn=args.binary_attn,
     )

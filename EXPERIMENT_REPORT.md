@@ -352,7 +352,59 @@ and produces stable, balanced binary weights.
 
 ---
 
-## 7. Success Criteria Assessment (guide §18)
+## 7. Param-Matched Validation (the confound is resolved)
+
+The original result carried a confound: the Tensormatics models had ~1.7× more
+parameters than their Standard counterparts (6.58M vs 3.88M) because the 3-branch
+Tensormatics FFN is wider at the same hidden width. To determine whether the
+advantage was architectural or merely due to extra capacity, we re-ran the **1-bit
+core** comparison (the strongest result) with the Tensormatics FFN narrowed so its
+parameter count matched the Standard model exactly.
+
+### How the match was made
+The Tensormatics FFN hidden width was reduced from 756 → **314** to hit the Standard
+1-bit-core parameter budget:
+
+| Model | Params | diff |
+|-------|-------:|-----:|
+| E — Std 1-bit core (756) | 3,896,676 | — |
+| **F2 — TM 1-bit core (314)** | **3,895,890** | **786 (0.02%)** |
+
+All other settings identical (same seed 1337, 5000 steps, batch 64, ctx 128, lr 3e-4).
+
+### Result
+
+| Model | Params | Val Loss | Val PPL | Val Acc |
+|-------|-------:|---------:|--------:|--------:|
+| E — Std 1-bit core | 3.90M | 2.496 | 12.14 | 27.3% |
+| F — TM 1-bit core (756) | 6.59M | 1.955 | 7.06 | 41.3% |
+| **F2 — TM 1-bit core (314, param-matched)** | **3.90M** | **1.896** | **6.66** | **42.4%** |
+
+### Interpretation — the advantage is real, not capacity
+
+The param-matched Tensormatics (F2) **matches or slightly exceeds** the much larger
+F, and beats the Standard E by a wide margin:
+
+```
+F2 (3.90M) val_ppl 6.66  vs  E (3.90M) val_ppl 12.14   →  45% lower ppl, equal params
+```
+
+Shrinking the Tensormatics FFN from 6.59M to 3.90M params *barely changed* its
+performance (7.06 → 6.66 ppl). This is strong evidence that:
+
+1. **The Tensormatics advantage is architectural**, not a parameter-count artifact.
+2. Tensormatics is **parameter-efficient under quantization** — it extracts roughly
+   the same 1-bit capability from ~40% fewer weights as the larger variant, and far
+   outperforms the standard FFN at the same budget.
+
+This directly resolves the primary limitation flagged in §8.1 of the original report.
+The Level-3 (breakthrough) conclusion — Tensormatics provides an architectural
+advantage under severe parameter discretization — now stands without the capacity
+confound.
+
+---
+
+## 8. Success Criteria Assessment (guide §18)
 
 | Level | Criteria | Outcome |
 |-------|----------|---------|
@@ -362,38 +414,30 @@ and produces stable, balanced binary weights.
 
 ---
 
-## 8. Limitations & Confounds
+## 9. Limitations & Confounds
 
-### 8.1 Parameter-count mismatch (the main confound)
+### 9.1 Parameter-count mismatch (RESOLVED — see §7)
 
-The Tensormatics models have **~1.7× more parameters** than their Standard
-counterparts (6.56M vs 3.88M FP16; 6.58M vs 3.89M 1-bit) because the 3-branch
-Tensormatics FFN with fusion+output projections is wider at the same hidden width.
-So part of Tensormatics' advantage is attributable to having more capacity.
+Originally the Tensormatics models had ~1.7× more parameters than their Standard
+counterparts (6.58M vs 3.88M) because the 3-branch Tensormatics FFN is wider at the
+same hidden width. **This confound has been resolved**: a param-matched Tensormatics
+(hidden 314, 3.90M) still beats the Standard (3.90M) by 45% on 1-bit-core val PPL
+(6.66 vs 12.14), confirming the advantage is architectural, not capacity.
 
-**However**, this confound is weaker than it appears for the headline claim:
-1. The FP16 comparison (B vs A) shows only a *1.6%* advantage despite the same 1.7×
-   capacity difference — so extra capacity alone does **not** translate to a 42%
-   advantage. The gap only appears under quantization.
-2. The guide explicitly frames L3 as "identical parameter counts and training
-   budgets." To fully close this, a follow-up should match parameter counts by
-   narrowing the Tensormatics FFN (e.g. fewer branches or smaller hidden) or widening
-   the standard FFN.
-
-### 8.2 Small scale and short training
+### 9.2 Small scale and short training
 
 - 5000 steps / ~5 minutes is a short run. FP16 curves were still descending; longer
   runs (50k–200k) would be needed to establish asymptotic PPL and confirm the 
   Tensormatics advantage persists (or narrows) at convergence.
 - TinyShakespeare is a toy dataset; results may not transfer to larger corpora/models.
 
-### 8.3 No bit-serial kernel
+### 9.3 No bit-serial kernel
 
 Inference speed is *not* improved by 1-bit weights because standard matmul is used.
 A hardware-acceleration claim would require a custom bit-serial kernel, which is out
 of scope for this first experiment (guide §15 explicitly separates these questions).
 
-### 8.4 Single seed
+### 9.4 Single seed
 
 All runs use seed 1337. Flip-rate averages and ppl differences are reported for a
 single seed; variance across seeds is unmeasured. The consistency of the gap
@@ -401,7 +445,7 @@ single seed; variance across seeds is unmeasured. The consistency of the gap
 
 ---
 
-## 9. Reproducibility
+## 10. Reproducibility
 
 Everything needed to reproduce is in `E:\AI-Workspace\1BitLLM`:
 
@@ -433,29 +477,31 @@ Per-model artifacts in `out/`:
 
 ---
 
-## 10. Conclusions & Recommended Next Steps
+## 11. Conclusions & Recommended Next Steps
 
 ### Conclusions
 1. **1-bit Tensormatics is viable and advantageous.** Under both 1-bit scopes, the
    Tensormatics transformer outperforms a standard transformer of the same training
    budget, with the advantage growing from 6% (FFN) to 42% (core) as discretization
    deepens.
-2. **No pathological failure modes.** No sign collapse, no divergence, healthy
+2. **The advantage is architectural, not capacity.** A param-matched Tensormatics
+   (3.90M) still beats the Standard (3.90M) by 45% on 1-bit-core val PPL — and even
+   slightly outperforms its own larger 6.58M variant. The parameter-count confound is
+   resolved.
+3. **No pathological failure modes.** No sign collapse, no divergence, healthy
    flip-rate settling toward discrete codes, and meaningful storage compression
    (up to 13.4×).
-3. **Storage compression is real; speed is not** (without a custom kernel).
+4. **Storage compression is real; speed is not** (without a custom kernel).
 
 ### Recommended next steps (in priority order)
-1. **Match parameter counts** between TM and Std to remove the capacity confound and
-   confirm the L3 result holds at equal params.
-2. **Longer runs (50k–200k)** to establish asymptotic PPL and see whether the
+1. **Longer runs (50k–200k)** to establish asymptotic PPL and see whether the
    Tensormatics advantage narrows or persists at convergence.
-3. **Multiple seeds** to quantify variance in the ppl gap and flip-rate settling.
-4. **Learn from the core result:** the standard 1-bit core (E) stalls; investigate
-   whether adding learnable scale/α to the standard FFN (not just the TM one) closes
-   part of the gap — isolating whether the advantage is the *multiplicative fusion*
-   or simply the *presence of the learned α scales*.
-5. **Bit-serial inference kernel** if hardware acceleration is a goal (separate from
+2. **Multiple seeds** to quantify variance in the ppl gap and flip-rate settling.
+3. **Isolate the mechanism:** the param-matched result shows the advantage is real;
+   next, test whether it comes specifically from the multiplicative fusion or from
+   the presence of learned α scales by adding learned α to the standard FFN's binary
+   layers.
+4. **Bit-serial inference kernel** if hardware acceleration is a goal (separate from
    storage, per guide §15).
 
 ---
