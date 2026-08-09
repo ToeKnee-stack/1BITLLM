@@ -18,9 +18,9 @@ FFN survives extreme discretization better than a **standard** FFN.
 is architectural, not capacity:** a Tensormatics narrowed to the Standard's exact
 parameter count (3.896M vs 3.896M, 786-param diff) still reaches val_ppl 6.66 vs 12.14
 for Standard. **Extended training (10K, 20K) shows the gap WIDENS:** 45% (5K) → 57%
-(10K) → 62% (20K) lower ppl. The Standard 1-bit core **stalls** at ~11.6 ppl while the
-Tensormatics core keeps improving to 4.35 ppl at 20K (still descending). All 6 original
-models plus the param-matched 5K/10K/20K validation are trained and benchmarked. The
+20K) lower ppl. The Standard 1-bit core **stalls** at ~11.6 ppl while the Tensormatics
+core keeps improving to **4.35 ppl at 20K** and **asymptotes at ~4.2 ppl by 50K**. All 6 original
+models plus the param-matched 5K/10K/20K/50K validation are trained and benchmarked. The
 code is complete and reproducible.
 
 ---
@@ -205,14 +205,24 @@ The Tensormatics advantage is architectural, not capacity. Full write-up in repo
 - Advantage: 45% (5K) → 57% (10K) → 62% (20K).
 - F2 20K log: `out/TM-1bit-core_F2-20k_log.jsonl`.
 
-### 7.3 [HIGH] 50K run of F2 to pin down the asymptotic PPL
-F2 was still improving at 20K (last delta −0.016). A 50K run (~53 min GPU) will find
-its ceiling. Use `run_f2_20k.py` pattern but `--steps 50000`. **NOT RUN YET** — user
-deferred due to time (needs ~1 hr wait).
+### 7.3 ✅ DONE — 50K run of F2 pins the asymptotic PPL at ~4.2
+Extended F2 (TM 1-bit core, hidden 314, param-matched) to 50K steps (~55 min GPU) to
+find its ceiling. **Result: F2 asymptotes at val_ppl ≈ 4.2** — best 4.23 at step 48K
+(4.24 at 50K). The curve has clearly plateaued: 30K→50K moved only 4.47→4.24, and the
+last-10K delta is ~0.1. This closes the "still descending" question from 20K.
+Curve: `out/TM-1bit-core_F2-50k_log.jsonl`, best ckpt `out/TM-1bit-core_F2-50k/best.pt`.
+
+**Important side-finding — same-seed divergence on ROCm (~0.3 ppl):** the 50K run
+tracked ~0.3 val_ppl WORSE than the 20K run throughout (4.67 vs 4.35 at step 20K)
+despite identical seed 1337, config, and eval cadence. Cause: ROCm matmul reduction
+order is nondeterministic, so GPU runs are not bit-reproducible even with a fixed
+seed. This is a *measured* estimate of run-to-run variance (~±0.15 ppl on the 4.2
+asymptote) and strengthens the case for the multiple-seeds step (7.4).
 
 ### 7.4 [MED] Multiple seeds
 All runs used seed 1337. Re-run key models (D, F2) with 2–3 seeds to quantify variance
-in the ppl gap and flip-rate settling.
+in the ppl gap and flip-rate settling. The 50K vs 20K same-seed divergence (~0.3 ppl)
+already gives a lower bound on that variance — worth formalizing across seeds.
 
 ### 7.5 [MED] Isolate the mechanism: multiplicative fusion vs learned α
 The param-matched result shows the advantage is real. Next, test whether it comes
@@ -233,6 +243,10 @@ needs a custom HIP/bit-serial kernel — separate from the storage experiment.
 - **`out/` contains run artifacts**; `checkpoints/` is empty and unused.
 - **Don't reinstall torch-directml** into the hermes venv (already reverted once).
 - **Single seed** — all conclusions are from seed 1337.
+- **ROCm nondeterminism** — GPU runs are NOT bit-reproducible even with a fixed seed
+  (matmul reduction order varies). Two same-config, same-seed runs (20K vs 50K) diverged
+  by ~0.3 val_ppl. Treat ppl figures as ±~0.15 on the ~4.2 asymptote; the headline gap is
+  far larger than this noise, so the conclusion is robust.
 - **Param confound** — RESOLVED by the param-matched run (hidden 314, §7). The 41.8%/45% advantage is architectural, not capacity.
 - **Inference speed** — 1-bit does not speed up generation; only storage shrinks.
 

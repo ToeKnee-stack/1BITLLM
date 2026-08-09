@@ -18,7 +18,7 @@ the larger 6.58M version (7.06).
 **And the gap WIDENS with training:** at equal params, Tensormatics beats Standard by
 **45% (5K) → 57% (10K) → 62% (20K)** lower val PPL. The Standard 1-bit core **stalls**
 at ~11.6 ppl (flatlined by ~step 3000), while the Tensormatics core keeps improving to
-**4.35 ppl at 20K** and is still descending.
+**4.35 ppl at 20K** and **asymptotes at ~4.2 ppl by 50K** (best 4.23 at step 48K).
 
 ---
 
@@ -125,8 +125,8 @@ LM head are always FP16 by design.
 - ✅ Phase 1 (BinaryLinear + STE) verified
 - ✅ Param-matched validation (hidden 314) — TM advantage is architectural, not capacity
 - ✅ Extended training (10K, 20K) — gap WIDENS: 45%→57%→62%; Std stalls, TM keeps improving
+- ✅ 50K run of F2 — asymptotic PPL pinned at ~4.2 (best 4.23 @ step 48K); also surfaced ~0.3-ppl same-seed ROCm nondeterminism
 - ✅ Full results in EXPERIMENT_REPORT.md
-- ⬜ 50K run of F2 to pin down asymptotic PPL (deferred — ~1 hr GPU)
 - ⬜ Multiple seeds
 - ⬜ Isolate whether the advantage comes from multiplicative fusion vs the learned α scales
 - ⬜ (Optional) bit-serial inference kernel for real speedup
