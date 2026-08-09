@@ -126,7 +126,7 @@ LM head are always FP16 by design.
 - ✅ Param-matched validation (hidden 314) — TM advantage is architectural, not capacity
 - ✅ Extended training (10K, 20K) — gap WIDENS: 45%→57%→62%; Std stalls, TM keeps improving
 - ✅ 50K run of F2 — asymptotic PPL pinned at ~4.2 (best 4.23 @ step 48K); also surfaced ~0.3-ppl same-seed ROCm nondeterminism
+- ✅ Multiple seeds (3× E/F2 @ 10K) — advantage robust: F2 beats E by 51–59% (mean 56%, σ 4.3%) at every seed
 - ✅ Full results in EXPERIMENT_REPORT.md
-- ⬜ Multiple seeds
 - ⬜ Isolate whether the advantage comes from multiplicative fusion vs the learned α scales
 - ⬜ (Optional) bit-serial inference kernel for real speedup

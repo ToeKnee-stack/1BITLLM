@@ -219,10 +219,25 @@ order is nondeterministic, so GPU runs are not bit-reproducible even with a fixe
 seed. This is a *measured* estimate of run-to-run variance (~±0.15 ppl on the 4.2
 asymptote) and strengthens the case for the multiple-seeds step (7.4).
 
-### 7.4 [MED] Multiple seeds
-All runs used seed 1337. Re-run key models (D, F2) with 2–3 seeds to quantify variance
-in the ppl gap and flip-rate settling. The 50K vs 20K same-seed divergence (~0.3 ppl)
-already gives a lower bound on that variance — worth formalizing across seeds.
+### 7.4 ✅ DONE — Multiple seeds: the advantage is robust across seeds
+Ran the param-matched 1-bit-core pair (E Std, F2 TM) at 10K steps across 3 seeds
+(1337, 42, 2024) to quantify variance. **The Tensormatics advantage holds at every
+seed** — F2 beats E by 51–59% (mean 56%, std 4.3%):
+
+| Seed | E (Std) ppl | F2 (TM) ppl | F2 lower by |
+|------|------------:|------------:|------------:|
+| 1337 | 11.68 | 4.96 | 57.5% |
+| 42   | 11.54 | 5.65 | 51.0% |
+| 2024 | 11.89 | 4.84 | 59.3% |
+| mean | 11.70 (σ 0.18) | 5.15 (σ 0.44) | **56.0% (σ 4.3%)** |
+
+Even the worst-case F2 (5.65 @ s42) beats the best-case E (11.54 @ s42) by 51%. The
+±0.3-ppl ROCm noise is real but immaterial to the conclusion. **Reproducibility
+control (seed 1337 re-run vs original 10K):** E differed by −0.95 ppl (12.63→11.68),
+F2 by only −0.07 (5.03→4.96) — the Std model is notably more sensitive to ROCm
+nondeterminism than TM. Flip-rate settling is consistent across seeds (avg 4.3–4.6%);
+F2's min flip drops to 1.6–2.3% vs E's 3.1–3.2%, confirming F2's layers settle into
+more frozen discrete configs. Logs: `out/{Std,TM}-1bit-core_{E,F2}-10k-s{seed}_log.jsonl`.
 
 ### 7.5 [MED] Isolate the mechanism: multiplicative fusion vs learned α
 The param-matched result shows the advantage is real. Next, test whether it comes
@@ -242,7 +257,8 @@ needs a custom HIP/bit-serial kernel — separate from the storage experiment.
   it's CPU-only and slow. Use the ROCm Python312.
 - **`out/` contains run artifacts**; `checkpoints/` is empty and unused.
 - **Don't reinstall torch-directml** into the hermes venv (already reverted once).
-- **Single seed** — all conclusions are from seed 1337.
+- **Single seed** — RESOLVED by the multi-seed run (§7.4): the 1-bit-core advantage
+  holds at every seed (F2 beats E by 51–59%, mean 56%, σ 4.3% at 10K).
 - **ROCm nondeterminism** — GPU runs are NOT bit-reproducible even with a fixed seed
   (matmul reduction order varies). Two same-config, same-seed runs (20K vs 50K) diverged
   by ~0.3 val_ppl. Treat ppl figures as ±~0.15 on the ~4.2 asymptote; the headline gap is

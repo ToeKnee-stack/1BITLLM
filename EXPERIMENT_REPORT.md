@@ -487,11 +487,16 @@ Inference speed is *not* improved by 1-bit weights because standard matmul is us
 A hardware-acceleration claim would require a custom bit-serial kernel, which is out
 of scope for this first experiment (guide §15 explicitly separates these questions).
 
-### 9.4 Single seed
+### 9.4 Single seed (RESOLVED — see §7.4)
 
-All runs use seed 1337. Flip-rate averages and ppl differences are reported for a
-single seed; variance across seeds is unmeasured. The consistency of the gap
-(monotone, wide) reduces but does not eliminate this concern.
+The original runs used seed 1337 only. **This has been resolved**: the param-matched
+1-bit-core pair (E, F2) was re-run at 10K across 3 seeds (1337, 42, 2024). The
+Tensormatics advantage holds at every seed — F2 beats E by 51–59% (mean 56%, σ 4.3%),
+and even the worst-case F2 (5.65 @ s42) beats the best-case E (11.54 @ s42) by 51%.
+The gap is far larger than the measured run-to-run variance (E σ 0.18, F2 σ 0.44 ppl),
+so the conclusion is robust. A reproducibility control (seed 1337 re-run vs original
+10K) showed E differing by −0.95 ppl and F2 by only −0.07, indicating the Standard
+model is more sensitive to ROCm nondeterminism than Tensormatics.
 
 ---
 
@@ -540,22 +545,22 @@ Per-model artifacts in `out/`:
    larger 6.58M variant. The parameter-count confound is resolved.
 3. **The Standard 1-bit core saturates; Tensormatics keeps learning.** Over extended
    training the Standard core stalls at ~11.6 ppl (flatlined by ~step 3000), while
-   the Tensormatics core improves monotonically to 4.35 ppl at 20K and is still
-   descending. The advantage *widens* with training — the strongest form of the claim.
-4. **No pathological failure modes.** No sign collapse, no divergence, healthy
+   the Tensormatics core improves monotonically to 4.35 ppl at 20K and **asymptotes at
+   ~4.2 ppl by 50K**. The advantage *widens* with training — the strongest form of the claim.
+4. **The advantage is robust across seeds.** At 10K, F2 beats E by 51–59% (mean 56%,
+   σ 4.3%) across 3 seeds; the gap is far larger than run-to-run variance (E σ 0.18,
+   F2 σ 0.44 ppl). The single-seed concern is resolved.
+5. **No pathological failure modes.** No sign collapse, no divergence, healthy
    flip-rate settling toward discrete codes, and meaningful storage compression
    (up to 13.4×).
-5. **Storage compression is real; speed is not** (without a custom kernel).
+6. **Storage compression is real; speed is not** (without a custom kernel).
 
 ### Recommended next steps (in priority order)
-1. **50K+ run of F2** to pin down the Tensormatics asymptotic PPL (~53 min GPU time;
-   F2 was still descending at 20K).
-2. **Multiple seeds** to quantify variance in the ppl gap and flip-rate settling.
-3. **Isolate the mechanism:** the param-matched result shows the advantage is real;
+1. **Isolate the mechanism:** the param-matched result shows the advantage is real;
    next, test whether it comes specifically from the multiplicative fusion or from
    the presence of learned α scales by adding learned α to the standard FFN's binary
    layers.
-4. **Bit-serial inference kernel** if hardware acceleration is a goal (separate from
+2. **Bit-serial inference kernel** if hardware acceleration is a goal (separate from
    storage, per guide §15).
 
 ---
