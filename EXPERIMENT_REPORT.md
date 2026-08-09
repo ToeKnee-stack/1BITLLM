@@ -1,6 +1,6 @@
 # 1-Bit Tensormatics LLM — TinyShakespeare Experiment Report
 
-**Date:** 2026-08-08
+**Date:** 2026-08-08 (report); mechanism ablation §7.2 completed 2026-08-09
 **Hardware:** AMD Radeon RX 7900 XTX (24 GB VRAM), native Windows ROCm PyTorch (torch 2.9.1+rocmsdk, HIP 7.2)
 **Dataset:** TinyShakespeare (1.1 MB, ~1M chars, char-level vocab of 65)
 
@@ -21,6 +21,10 @@ guide's *Level 3* (breakthrough) hypothesis:
 - **Param-matched & extended:** the advantage is architectural, not capacity — a Tensormatics narrowed to the Standard's exact param count (3.90M) beats it at **every** training length, and the gap **widens** with training: **45% (5K) → 57% (10K) → 62% (20K)** lower ppl. The Standard 1-bit core **stalls** at ~11.6 ppl while Tensormatics keeps improving (4.35 ppl at 20K, still descending).
 - **Feasibility:** all 1-bit models train stably, loss descends, no sign collapse (+1 fraction pinned at ~50%), and flip rates trend toward settling into discrete configurations.
 - **Storage:** 1-bit core gives **12.4–13.4× compression** of weight storage.
+- **Mechanism (why):** a param-matched ablation isolates the load-bearing feature — the
+  **multiplicative (Hadamard) fusion path**. Removing it collapses Tensormatics ppl from
+  4.96 → 10.68 (back to Standard's ~11.7); the additive path and the learnable gate
+  contribute little (§7.2).
 - **Inference speed did NOT improve** (expected): PyTorch matmul is not bit-serial. Tensormatics 1-bit is *slower* per token than Standard because its graph is larger.
 
 **Caveat:** the Tensormatics models have ~1.7× more parameters than the Standard models
@@ -452,6 +456,48 @@ multiple-seeds check (§11). The 45%/57%/62% advantage figures should be read wi
 ±0.3-ppl seed/ROCm noise in mind — the gap is far larger than that noise, so the
 conclusion is robust, but the exact ppl values carry run-to-run variance.
 
+### 7.2 Mechanism ablation — WHY does the Tensormatics FFN win under 1-bit?
+
+The param-matched and multi-seed results prove the advantage is *real* and *robust*,
+but not *which structural feature* carries it. This section isolates the mechanism.
+
+**Deconfounding check first.** The Standard FFN's binary layers are `BinaryLinear`,
+which already has learned per-channel α. So learned α is NOT the differentiator — both
+E and F2 already have it. The advantage must come from the Tensormatics FFN *structure*:
+(1) the multiplicative (Hadamard) fusion path, (2) the additive (sum) path, or (3) the
+learnable TensorConverge gate.
+
+We ran the param-matched TM 1-bit core (hidden 314) at 10K/seed 1337 with each feature
+toggled off. Because the fusion projection is shared by both paths, **every variant keeps
+the exact same parameter count** (3,895,890; the `--no-tm-gate` variants are 6 params
+fewer — a fixed 0.5-gate scalar vs a learnable one — a negligible, noted diff). So any
+ppl difference is purely structural.
+
+| Variant | Flags | Params | Val PPL @ 10K |
+|---------|-------|-------:|--------------:|
+| F2 full (baseline) | (none) | 3,895,890 | **4.96** |
+| A — additive only (no mult) | `--no-tm-mult` | 3,895,890 | **10.68** |
+| B — multiplicative only (no add) | `--no-tm-add` | 3,895,890 | 5.29 |
+| C — fixed 0.5 gate | `--no-tm-gate` | 3,895,884 | **4.79** |
+| D — additive only, fixed gate | `--no-tm-mult --no-tm-gate` | 3,895,884 | 10.89 |
+
+**Result — the multiplicative fusion is the load-bearing mechanism.**
+- Removing the multiplicative (Hadamard) path collapses ppl from **4.96 → 10.68**,
+  landing squarely in the Standard model's territory (~11.7). This is strong, specific
+  evidence that the cross-branch multiplicative interaction — not the additive path, not
+  the gate, and not α (already controlled) — is what lets the Tensormatics FFN extract
+  usable function from binary weights.
+- The additive path contributes only marginally (removing it: 4.96 → 5.29).
+- The learnable gate is essentially irrelevant — a *fixed* 0.5 gate (C) is even slightly
+  *better* than the learned gate (4.79 vs 4.96), consistent with the TensorConverge gate
+  converging near 0.5 anyway. Removing the gate on top of no-mult (D) changes nothing
+  (10.89 ≈ 10.68).
+
+This isolates the mechanism that §11's "Recommended next steps" #1 (originally an open
+question) was asking about: **the multiplicative fusion path is the reason Tensormatics
+survives 1-bit weights.** Runner: `scripts/run_ablation.py`; logs:
+`out/TM-1bit-core_ablation-{A,B,C,D}-*_log.jsonl`.
+
 ---
 
 ## 8. Success Criteria Assessment (guide §18)
@@ -550,16 +596,19 @@ Per-model artifacts in `out/`:
 4. **The advantage is robust across seeds.** At 10K, F2 beats E by 51–59% (mean 56%,
    σ 4.3%) across 3 seeds; the gap is far larger than run-to-run variance (E σ 0.18,
    F2 σ 0.44 ppl). The single-seed concern is resolved.
-5. **No pathological failure modes.** No sign collapse, no divergence, healthy
+5. **The mechanism is the multiplicative fusion.** A param-matched ablation (§7.2)
+   shows removing the Hadamard path collapses Tensormatics ppl from 4.96 → 10.68 (back
+   to Standard territory ~11.7), while the additive path (4.96 → 5.29) and the learnable
+   gate (4.79 with a fixed 0.5 gate — even slightly better) contribute little. The
+   cross-branch multiplicative interaction is the load-bearing structural feature.
+6. **No pathological failure modes.** No sign collapse, no divergence, healthy
    flip-rate settling toward discrete codes, and meaningful storage compression
    (up to 13.4×).
-6. **Storage compression is real; speed is not** (without a custom kernel).
+7. **Storage compression is real; speed is not** (without a custom kernel).
 
 ### Recommended next steps (in priority order)
-1. **Isolate the mechanism:** the param-matched result shows the advantage is real;
-   next, test whether it comes specifically from the multiplicative fusion or from
-   the presence of learned α scales by adding learned α to the standard FFN's binary
-   layers.
+1. ✅ **Mechanism identified** — the multiplicative fusion path carries the 1-bit
+   advantage (see §7.2). Done.
 2. **Bit-serial inference kernel** if hardware acceleration is a goal (separate from
    storage, per guide §15).
 

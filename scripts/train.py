@@ -36,6 +36,12 @@ def parse_args():
     p.add_argument("--ffn", choices=["standard", "tensormatics"], default="standard")
     p.add_argument("--ffn-hidden", type=int, default=None,
                    help="Override FFN hidden width (default: 756). For param-matched TM runs.")
+    p.add_argument("--no-tm-mult", action="store_true",
+                   help="Tensormatics ablation: disable the multiplicative (Hadamard) path")
+    p.add_argument("--no-tm-add", action="store_true",
+                   help="Tensormatics ablation: disable the additive (sum) path")
+    p.add_argument("--no-tm-gate", action="store_true",
+                   help="Tensormatics ablation: fix the TensorConverge gate at 0.5 (not learned)")
     p.add_argument("--binary-ffn", action="store_true")
     p.add_argument("--binary-attn", action="store_true")
     p.add_argument("--data", default="data/tiny_shakespeare.txt")
@@ -95,6 +101,9 @@ def main():
         block_size=args.block,
         ffn_type=args.ffn,
         ffn_hidden=args.ffn_hidden if args.ffn_hidden else 756,
+        tm_use_mult=not args.no_tm_mult,
+        tm_use_add=not args.no_tm_add,
+        tm_learn_gate=not args.no_tm_gate,
         binary_ffn=args.binary_ffn,
         binary_attn=args.binary_attn,
     )

@@ -53,11 +53,16 @@ class TensorConverge(nn.Module):
 
     Per Tensormatics: V = sigmoid(alpha) * T_mult + (1 - sigmoid(alpha)) * T_add
     alpha is a single learnable scalar (diagnostic of structure type).
+    When learn_gate=False, alpha is fixed at 0 (gate = 0.5) — an ablation control.
     """
 
-    def __init__(self, dim: int) -> None:
+    def __init__(self, dim: int, learn_gate: bool = True) -> None:
         super().__init__()
-        self.alpha = nn.Parameter(torch.zeros(1))  # init -> 0.5 gate
+        self.learn_gate = learn_gate
+        if learn_gate:
+            self.alpha = nn.Parameter(torch.zeros(1))  # init -> 0.5 gate
+        else:
+            self.register_buffer("alpha", torch.zeros(1))  # fixed 0.5 gate
 
     def forward(self, t_mult: torch.Tensor, t_add: torch.Tensor) -> torch.Tensor:
         g = torch.sigmoid(self.alpha)
@@ -83,12 +88,19 @@ class TensormaticsFFN(nn.Module):
         hidden: int,
         n_branches: int = 3,
         binary: bool = False,
+        use_mult: bool = True,
+        use_add: bool = True,
+        learn_gate: bool = True,
     ) -> None:
         super().__init__()
         self.dim = dim
         self.hidden = hidden
         self.n_branches = n_branches
         self.binary = binary
+        self.use_mult = use_mult
+        self.use_add = use_add
+        self.learn_gate = learn_gate
+        assert use_mult or use_add, "at least one fusion path must be enabled"
 
         # Branch projections: dim -> hidden for each branch.
         self.branch_projs = nn.ModuleList(
@@ -103,7 +115,7 @@ class TensormaticsFFN(nn.Module):
         self.gelu = nn.GELU()
 
         # TensorConverge vertex stabilization.
-        self.converge = TensorConverge(dim)
+        self.converge = TensorConverge(dim, learn_gate=learn_gate)
 
         # Output projection: dim -> dim.
         self.out_proj = make_linear(dim, dim, binary=binary)
@@ -120,8 +132,13 @@ class TensormaticsFFN(nn.Module):
             mult = mult * b
         mult_path = self.fusion(mult)
 
-        # Vertex fusion via TensorConverge.
-        fused = self.converge(mult_path, add_path)
+        # Vertex fusion via TensorConverge (or a fixed 0.5 gate when not learned).
+        if self.use_mult and self.use_add:
+            fused = self.converge(mult_path, add_path)
+        elif self.use_mult:
+            fused = mult_path
+        else:
+            fused = add_path
 
         # Output projection.
         return self.out_proj(fused)

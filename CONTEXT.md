@@ -21,7 +21,10 @@ for Standard. **Extended training (10K, 20K) shows the gap WIDENS:** 45% (5K) �
 20K) lower ppl. The Standard 1-bit core **stalls** at ~11.6 ppl while the Tensormatics
 core keeps improving to **4.35 ppl at 20K** and **asymptotes at ~4.2 ppl by 50K**. All 6 original
 models plus the param-matched 5K/10K/20K/50K validation are trained and benchmarked. The
-code is complete and reproducible.
+code is complete and reproducible. **A mechanism ablation (10K, param-matched, seed
+1337) isolated WHY it works: the multiplicative (Hadamard) fusion path is the load-bearing
+feature** — removing it collapses Tensormatics ppl from 4.96 to 10.68 (back to Standard's
+~11.7), while the additive path and the learned gate contribute little.
 
 ---
 
@@ -76,6 +79,7 @@ E:\AI-Workspace\1BitLLM\
 │   ├── train.py                # training + JSONL logging + checkpointing
 │   ├── eval_model.py           # storage/inference benchmark + generation
 │   ├── run_1bit.py             # runs C/D/E/F sequentially
+│   ├── run_ablation.py         # runs the mechanism ablation variants (A/B/C/D)
 │   ├── run_eval.py             # evals all 6 best checkpoints → out/eval_all.txt
 │   └── run_matrix.sh           # shell runner for the full matrix
 ├── checkpoints\                # EMPTY — unused (checkpoints actually go in out/)
@@ -184,6 +188,10 @@ $PY scripts/run_1bit.py
 # eval + benchmark + generate all 6
 $PY scripts/run_eval.py
 # → writes out/eval_all.txt
+
+# mechanism ablation (4 variants, 10K each, ~30 min)
+$PY scripts/run_ablation.py
+# → out/TM-1bit-core_ablation-{A,B,C,D}-*_log.jsonl
 ```
 
 **train.py flag semantics:** `--binary-ffn` alone = "1-bit FFN". `--binary-ffn
@@ -239,13 +247,30 @@ nondeterminism than TM. Flip-rate settling is consistent across seeds (avg 4.3�
 F2's min flip drops to 1.6–2.3% vs E's 3.1–3.2%, confirming F2's layers settle into
 more frozen discrete configs. Logs: `out/{Std,TM}-1bit-core_{E,F2}-10k-s{seed}_log.jsonl`.
 
-### 7.5 [MED] Isolate the mechanism: multiplicative fusion vs learned α
-The param-matched result shows the advantage is real. Next, test whether it comes
-specifically from the multiplicative interaction or from the presence of learned α
-scales — e.g. add a learned per-channel α to the *standard* FFN's binary layers and see
-if that closes part of the gap.
+### 7.5 ✅ DONE — Mechanism ablation: the multiplicative fusion is the load-bearing feature
+Ran the param-matched TM 1-bit core (hidden 314, 3.90M) at 10K/seed 1337 with each
+structural feature toggled off (all variants keep identical params 3,895,890). Deconfounding
+check first: the Standard FFN's `BinaryLinear` already has learned per-channel α, so learned
+α is controlled — the differentiator must be Tensormatics *structure* (mult path / add path /
+gate).
 
-### 7.6 [LOW] Bit-serial inference kernel
+| Variant | Flags | Params | Val PPL @ 10K |
+|---------|-------|-------:|--------------:|
+| F2 full (baseline) | (none) | 3,895,890 | 4.96 |
+| A — additive only | `--no-tm-mult` | 3,895,890 | **10.68** |
+| B — multiplicative only | `--no-tm-add` | 3,895,890 | 5.29 |
+| C — fixed 0.5 gate | `--no-tm-gate` | 3,895,884 | **4.79** |
+| D — additive only, fixed gate | `--no-tm-mult --no-tm-gate` | 3,895,884 | 10.89 |
+
+**Result:** removing the multiplicative (Hadamard) path collapses ppl 4.96 → 10.68, landing
+squarely in the Standard model's territory (~11.7) — the **multiplicative fusion is the
+load-bearing mechanism** behind the 1-bit advantage. The additive path contributes little
+(removing it: 4.96 → 5.29). The learnable gate is essentially irrelevant — a fixed 0.5 gate
+(C) is even *slightly better* than the learned gate (4.79 vs 4.96). This closes the
+mechanism question that §7.5 previously left open. Logs: `out/TM-1bit-core_ablation-{A,B,C,D}-*_log.jsonl`, runner
+`scripts/run_ablation.py`.
+
+### 7.6 [MED] Bit-serial inference kernel
 Storage is compressed 13× but speed is not (matmul isn't bit-serial). A real speedup
 needs a custom HIP/bit-serial kernel — separate from the storage experiment.
 
@@ -278,10 +303,12 @@ needs a custom HIP/bit-serial kernel — separate from the storage experiment.
 | `src/onebitllm/model/binary_linear.py` | The core `BinaryLinear` (STE + α) |
 | `src/onebitllm/model/ffn.py` | StandardFFN + TensormaticsFFN + TensorConverge |
 | `src/onebitllm/model/model.py` | GPT, config, blocks |
+| `scripts/run_ablation.py` | Mechanism ablation runner (mult/add/gate toggles, param-matched) |
+| `out/TM-1bit-core_ablation-*_log.jsonl` | Ablation variant results (A/B/C/D @ 10K) |
 | `out/<Model>_log.jsonl` | Raw per-model metrics + binary diagnostics |
 | `out/eval_all.txt` | Generation samples for all 6 models |
 | `out/<Model>/best.pt` | Best checkpoint weights + config |
 
 ---
 
-*Context captured: 2026-08-08. Project directory: `E:\AI-Workspace\1BitLLM`.*
+*Context captured: 2026-08-08. Mechanism ablation completed 2026-08-09. Project directory: `E:\AI-Workspace\1BitLLM`.*

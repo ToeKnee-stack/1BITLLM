@@ -35,6 +35,9 @@ class GPTConfig:
     ffn_hidden: int = 756         # FFN hidden dim
     ffn_type: str = "standard"    # "standard" | "tensormatics"
     n_branches: int = 3           # Tensormatics branches
+    tm_use_mult: bool = True      # Tensormatics: use multiplicative (Hadamard) path
+    tm_use_add: bool = True       # Tensormatics: use additive (sum) path
+    tm_learn_gate: bool = True    # Tensormatics: learn the TensorConverge gate (else fixed 0.5)
     binary_ffn: bool = False      # quantize FFN projections to 1-bit
     binary_attn: bool = False     # quantize Q/K/V/O to 1-bit
     bias: bool = False            # standard GPT-2 convention
@@ -139,7 +142,9 @@ class Block(nn.Module):
         self.ln_2 = RMSNorm(cfg.n_embd)
         if cfg.ffn_type == "tensormatics":
             self.mlp = TensormaticsFFN(
-                cfg.n_embd, cfg.ffn_hidden, cfg.n_branches, binary=cfg.binary_ffn
+                cfg.n_embd, cfg.ffn_hidden, cfg.n_branches, binary=cfg.binary_ffn,
+                use_mult=cfg.tm_use_mult, use_add=cfg.tm_use_add,
+                learn_gate=cfg.tm_learn_gate,
             )
         else:
             self.mlp = StandardFFN(cfg.n_embd, cfg.ffn_hidden, binary=cfg.binary_ffn)

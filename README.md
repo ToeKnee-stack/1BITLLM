@@ -20,6 +20,12 @@ the larger 6.58M version (7.06).
 at ~11.6 ppl (flatlined by ~step 3000), while the Tensormatics core keeps improving to
 **4.35 ppl at 20K** and **asymptotes at ~4.2 ppl by 50K** (best 4.23 at step 48K).
 
+**Mechanism (why):** a param-matched ablation isolates the load-bearing feature — the
+**multiplicative (Hadamard) fusion path**. Removing it collapses Tensormatics ppl from
+4.96 → 10.68 (back to Standard's ~11.7), while the additive path (4.96 → 5.29) and the
+learnable gate (fixed-0.5 gate is even slightly better, 4.79) contribute little. See
+[EXPERIMENT_REPORT.md §7.2](EXPERIMENT_REPORT.md).
+
 ---
 
 ## What this is
@@ -76,6 +82,7 @@ activations) stays FP16. We then A/B the two architectures at each precision.
 │   ├── train.py                # training + logging + checkpoints
 │   ├── eval_model.py           # storage/inference benchmark + generation
 │   ├── run_1bit.py             # runs C/D/E/F sequentially
+│   ├── run_ablation.py         # runs the mechanism ablation (mult/add/gate toggles)
 │   ├── run_eval.py             # evals all 6 best checkpoints
 │   └── run_matrix.sh           # full 6-model shell runner
 └── out/                        # JSONL logs, best.pt checkpoints, samples
@@ -114,6 +121,11 @@ python scripts/smoke_test.py
 `--batch`, `--block`, `--lr`, `--warmup`, `--eval-interval`, `--eval-iters`,
 `--seed`, `--out`, `--tag`.
 
+Tensormatics ablation flags: `--no-tm-mult` (disable Hadamard path), `--no-tm-add`
+(disable additive path), `--no-tm-gate` (fix TensorConverge gate at 0.5, not learned).
+These toggle structural features while keeping the param count identical, for isolating
+WHY the Tensormatics FFN wins under 1-bit (see §7.2 of the report).
+
 Note: `--binary-ffn` + `--binary-attn` together = "1-bit core". Embeddings, norms and
 LM head are always FP16 by design.
 
@@ -127,6 +139,6 @@ LM head are always FP16 by design.
 - ✅ Extended training (10K, 20K) — gap WIDENS: 45%→57%→62%; Std stalls, TM keeps improving
 - ✅ 50K run of F2 — asymptotic PPL pinned at ~4.2 (best 4.23 @ step 48K); also surfaced ~0.3-ppl same-seed ROCm nondeterminism
 - ✅ Multiple seeds (3× E/F2 @ 10K) — advantage robust: F2 beats E by 51–59% (mean 56%, σ 4.3%) at every seed
+- ✅ Mechanism ablation — the multiplicative (Hadamard) fusion path is the load-bearing feature (removing it: 4.96 → 10.68 ppl)
 - ✅ Full results in EXPERIMENT_REPORT.md
-- ⬜ Isolate whether the advantage comes from multiplicative fusion vs the learned α scales
 - ⬜ (Optional) bit-serial inference kernel for real speedup
